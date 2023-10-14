@@ -1,10 +1,13 @@
 package org.pimonitor;
 
 import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.chart.TilesFXSeries;
 import javafx.application.Platform;
@@ -23,6 +26,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class UIActor extends AbstractActor {
 
@@ -34,10 +39,13 @@ public class UIActor extends AbstractActor {
     private final Tile areaTileHumidity;
     private final Tile areaTileUV;
     private final Tile areaTileRain;
+    private final Tile areaChartTileprecipitation;
+    private final Tile areaChartTileWindGusts;
+    private final Tile areaChartTileWindSpeed;
 
-
-    public UIActor(Tile temperatureTile, Tile windDirectionTile, Tile windSpeedTile, Tile areaTileTemperature,
-                   Tile areaTileHumidity, Tile areaTileUV, Tile areaTileRain) {
+    public UIActor(Tile temperatureTile,Tile areaTileTemperature, Tile windDirectionTile, Tile windSpeedTile,
+                   Tile areaTileHumidity, Tile areaTileUV, Tile areaTileRain, Tile areaChartTileprecipitation,
+                   Tile areaChartTileWindSpeed, Tile areaChartTileWindGusts) {
         this.temperatureTile = temperatureTile;
         this.windDirectionTile = windDirectionTile;
         this.windSpeedTile = windSpeedTile;
@@ -45,6 +53,9 @@ public class UIActor extends AbstractActor {
         this.areaTileHumidity = areaTileHumidity;
         this.areaTileUV = areaTileUV;
         this.areaTileRain = areaTileRain;
+        this.areaChartTileprecipitation = areaChartTileprecipitation;
+        this.areaChartTileWindGusts = areaChartTileWindGusts;
+        this.areaChartTileWindSpeed = areaChartTileWindSpeed;
     }
 
     @Override
@@ -62,7 +73,9 @@ public class UIActor extends AbstractActor {
                                     temperatureTile.setText(time);
                                     windDirectionTile.setDescription(s.get("current_weather").getAsJsonObject().get("winddirection").toString());
                                     windDirectionTile.setText(time);
-                                    windSpeedTile.setDescription(s.get("current_weather").getAsJsonObject().get("windspeed").toString());
+
+                                    Double wind = (s.get("current_weather").getAsJsonObject().get("windspeed").getAsDouble() + 5) / 5.0;
+                                    windSpeedTile.setDescription(Long.valueOf(wind.longValue()).toString());
                                     windSpeedTile.setText(time);
 
                                     List<JsonElement> temperatures = s.get("hourly").getAsJsonObject().get("temperature_2m").getAsJsonArray().asList();
@@ -74,10 +87,21 @@ public class UIActor extends AbstractActor {
                                     List<JsonElement> daily_times = s.get("daily").getAsJsonObject().get("time").getAsJsonArray().asList();
                                     List<JsonElement> rain = s.get("hourly").getAsJsonObject().get("rain").getAsJsonArray().asList();
 
+                                    List<JsonElement> windgusts_10m = s.get("hourly").getAsJsonObject().get("windgusts_10m").getAsJsonArray().asList();
+                                    List<JsonElement> new_windgusts_10m = getBeaufortScale(windgusts_10m);
+
+                                    List<JsonElement> windspeed_10m = s.get("hourly").getAsJsonObject().get("windspeed_10m").getAsJsonArray().asList();
+                                    List<JsonElement> new_windspeed_10m = getBeaufortScale(windspeed_10m);
+
+                                    List<JsonElement> precipitation_probability = s.get("hourly").getAsJsonObject().get("precipitation_probability").getAsJsonArray().asList();
+
                                     plotChartHourly(hourly_times, temperatures, areaTileTemperature,"Temperature", time);
                                     plotChartHourly(hourly_times, humidities, areaTileHumidity, "Humidity", time);
                                     plotChartDaily(daily_times, uv, areaTileUV, "UV", time);
                                     plotChartHourly(hourly_times, rain, areaTileRain, "Rain", time);
+                                    plotChartHourly(hourly_times,precipitation_probability, areaChartTileprecipitation, "Precipitation Probability", time);
+                                    plotChartHourly(hourly_times,new_windgusts_10m, areaChartTileWindGusts, "Wind Gusts", time);
+                                    plotChartHourly(hourly_times,new_windspeed_10m, areaChartTileWindSpeed, "Wind Speed", time);
 
                                 }
                             });
@@ -86,6 +110,15 @@ public class UIActor extends AbstractActor {
                 .build();
     }
 
+    private List<JsonElement> getBeaufortScale(List<JsonElement> list) {
+        Stream<JsonElement> windgusts_10mStream = list.stream().map(x -> {
+            Double y = (x.getAsDouble() + 5) / 5;
+            Long w = Long.valueOf(y.longValue());
+            JsonElement j = JsonParser.parseString(w.toString());
+            return j;
+        });
+        return windgusts_10mStream.collect(Collectors.toList());
+    }
     private void plotChartHourly(List<JsonElement> keys, List<JsonElement> values, Tile tile, String title, String text) {
 
         XYChart.Series<String, Number> series = new XYChart.Series();
@@ -151,7 +184,7 @@ public class UIActor extends AbstractActor {
         int dayNow = now.getDayOfMonth();
 
         if (month == monthNow && day == dayNow) {
-            keyToDisplay = "TODAY";
+            keyToDisplay = "T";
         }
         return keyToDisplay;
     }
