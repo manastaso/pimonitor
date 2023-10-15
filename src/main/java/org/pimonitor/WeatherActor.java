@@ -25,7 +25,7 @@ public class WeatherActor extends AbstractActorWithTimers {
         getJSONObject();
         
         getSelf().tell("tick", getSelf());
-        getTimers().startTimerAtFixedRate(TICK_KEY, "tick", Duration.ofMillis(60000));
+        getTimers().startTimerAtFixedRate(TICK_KEY, "tick", Duration.ofMillis(5000));
         WeatherActor.ui = ui;
         client = new OkHttpClient();
         gson = new Gson();

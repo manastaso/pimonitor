@@ -53,9 +53,9 @@ public class MainFX extends Application{
 
         clockTile = TileBuilder.create()
                 .skinType(Tile.SkinType.CLOCK)
+                .title("Clock")
+                .text("Clock")
                 .prefSize(150, 150)
-                .title("Clock Tile")
-                .text("Whatever text")
                 .dateVisible(true)
                 .locale(Locale.US)
                 .running(true)
@@ -194,8 +194,8 @@ public class MainFX extends Application{
         ActorRef ui = system.actorOf(Props.create(UIActor.class, temperatureTile, areaChartTileTemperature,
                 windDirectionTile, windSpeedTile, areaChartTileHumidity, areaChartTileUV,
                 areaChartTileRain, areaChartTilePrecipitation,
-                areaChartTileWindSpeed, areaChartTileWindGusts), "ui");
-        ActorRef main = system.actorOf(Props.create(WeatherActor.class, ui), "main");
-
+                areaChartTileWindSpeed, areaChartTileWindGusts, clockTile), "ui");
+        system.actorOf(Props.create(WeatherActor.class, ui), "weather");
+        system.actorOf(Props.create(NamedayActor.class, ui), "namedays");
     }
 }

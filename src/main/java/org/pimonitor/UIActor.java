@@ -1,8 +1,6 @@
 package org.pimonitor;
 
 import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.google.gson.JsonElement;
@@ -17,15 +15,9 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import org.joda.time.DateTime;
-import org.joda.time.Days;
 import org.joda.time.Hours;
 
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -42,10 +34,11 @@ public class UIActor extends AbstractActor {
     private final Tile areaChartTileprecipitation;
     private final Tile areaChartTileWindGusts;
     private final Tile areaChartTileWindSpeed;
+    private final Tile clockTile;
 
     public UIActor(Tile temperatureTile,Tile areaTileTemperature, Tile windDirectionTile, Tile windSpeedTile,
                    Tile areaTileHumidity, Tile areaTileUV, Tile areaTileRain, Tile areaChartTileprecipitation,
-                   Tile areaChartTileWindSpeed, Tile areaChartTileWindGusts) {
+                   Tile areaChartTileWindSpeed, Tile areaChartTileWindGusts, Tile clockTile) {
         this.temperatureTile = temperatureTile;
         this.windDirectionTile = windDirectionTile;
         this.windSpeedTile = windSpeedTile;
@@ -56,6 +49,7 @@ public class UIActor extends AbstractActor {
         this.areaChartTileprecipitation = areaChartTileprecipitation;
         this.areaChartTileWindGusts = areaChartTileWindGusts;
         this.areaChartTileWindSpeed = areaChartTileWindSpeed;
+        this.clockTile = clockTile;
     }
 
     @Override
@@ -106,23 +100,41 @@ public class UIActor extends AbstractActor {
                                 }
                             });
                         })
+                .match( String.class,
+                        s -> {
+                            clockTile.setText(s);
+                        })
                 .matchAny(o -> log.info("received unknown message"))
                 .build();
     }
 
     private List<JsonElement> getBeaufortScale(List<JsonElement> list) {
-        Stream<JsonElement> windgusts_10mStream = list.stream().map(x -> {
+        Stream<JsonElement> stream = list.stream().map(x -> {
             Double y = (x.getAsDouble() + 5) / 5;
             Long w = Long.valueOf(y.longValue());
             JsonElement j = JsonParser.parseString(w.toString());
             return j;
         });
-        return windgusts_10mStream.collect(Collectors.toList());
+        return stream.collect(Collectors.toList());
     }
-    private void plotChartHourly(List<JsonElement> keys, List<JsonElement> values, Tile tile, String title, String text) {
 
+    private XYChart.Series<String, Number> getEmptySeriesFromTile(Tile tile, String title) {
         XYChart.Series<String, Number> series = new XYChart.Series();
         series.setName(title);
+
+        if (tile.getSeries().size() > 0) {
+            series = tile.getSeries().get(0);
+            series.setName(title);
+            do {
+                series.getData().remove(0);
+            } while (series.getData().size() > 0);
+        }
+        return series;
+    }
+
+    private void plotChartHourly(List<JsonElement> keys, List<JsonElement> values, Tile tile, String title, String text) {
+
+        XYChart.Series<String, Number> series = getEmptySeriesFromTile(tile, title);
 
         for (int i = 0; i < values.size(); i++) {
 
@@ -136,18 +148,18 @@ public class UIActor extends AbstractActor {
 
         tile.setText(text);
 
-        tile.setTilesFXSeries(new TilesFXSeries<>(series,
-                Tile.BLUE,
-                new LinearGradient(0, 0, 0, 1,
-                        true, CycleMethod.NO_CYCLE,
-                        new Stop(0, Tile.BLUE),
+        if (tile.getTilesFXSeries().size() == 0)
+            tile.setTilesFXSeries(new TilesFXSeries<>(series,
+                    Tile.BLUE,
+                    new LinearGradient(0, 0, 0, 1,
+                            true, CycleMethod.NO_CYCLE,
+                            new Stop(0, Tile.BLUE),
                         new Stop(1, Color.TRANSPARENT))));
     }
 
     private void plotChartDaily(List<JsonElement> keys, List<JsonElement> values, Tile tile, String title, String text) {
 
-        XYChart.Series<String, Number> series = new XYChart.Series();
-        series.setName(title);
+        XYChart.Series<String, Number> series = getEmptySeriesFromTile(tile, title);
 
         for (int i = 0; i < values.size(); i++) {
 
@@ -161,12 +173,13 @@ public class UIActor extends AbstractActor {
 
         tile.setText(text);
 
-        tile.setTilesFXSeries(new TilesFXSeries<>(series,
-                Tile.BLUE,
-                new LinearGradient(0, 0, 0, 1,
-                        true, CycleMethod.NO_CYCLE,
-                        new Stop(0, Tile.BLUE),
-                        new Stop(1, Color.TRANSPARENT))));
+        if (tile.getTilesFXSeries().size() == 0)
+            tile.setTilesFXSeries(new TilesFXSeries<>(series,
+                    Tile.BLUE,
+                    new LinearGradient(0, 0, 0, 1,
+                            true, CycleMethod.NO_CYCLE,
+                            new Stop(0, Tile.BLUE),
+                            new Stop(1, Color.TRANSPARENT))));
     }
 
     private static String getKeyFromHourlyDate(DateTime time) {
