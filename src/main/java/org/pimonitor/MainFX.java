@@ -8,19 +8,16 @@ import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.tools.FlowGridPane;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.paint.Color;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
 
 import java.util.Locale;
 
@@ -29,29 +26,13 @@ public class MainFX extends Application{
     private static final double TILE_WIDTH = 150;
     private static final double TILE_HEIGHT = 150;
 
-    private Tile clockTile;
-    private Tile dateTile;
-    private Tile temperatureTile;
-    private Tile windSpeedTile;
-    private Tile windDirectionTile;
-    private Tile areaChartTileTemperature;
-    private Tile areaChartTileHumidity;
-    private Tile areaChartTileUV;
-    private Tile areaChartTileRain;
-    private Tile areaChartTileWindSpeed;
-    private Tile areaChartTileWindGusts;
-    private Tile areaChartTilePrecipitation;
-
     public static void main(String[] args) {
         launch();
     }
 
     public void start(Stage stage) {
-        String javaVersion = System.getProperty("java.version");
-        String javafxVersion = System.getProperty("javafx.version");
-        Label l = new Label();
 
-        clockTile = TileBuilder.create()
+        Tile clockTile = TileBuilder.create()
                 .skinType(Tile.SkinType.CLOCK)
                 .title("Clock")
                 .text("Clock")
@@ -61,35 +42,35 @@ public class MainFX extends Application{
                 .running(true)
                 .build();
 
-        dateTile = TileBuilder.create()
+        Tile dateTile = TileBuilder.create()
                 .skinType(Tile.SkinType.DATE)
                 .prefSize(TILE_WIDTH, TILE_HEIGHT)
                 .build();
 
-        temperatureTile = TileBuilder.create().skinType(Tile.SkinType.CHARACTER)
-                .prefSize(TILE_WIDTH+150, TILE_HEIGHT)
+        Tile temperatureTile = TileBuilder.create().skinType(Tile.SkinType.CHARACTER)
+                .prefSize(TILE_WIDTH + 150, TILE_HEIGHT)
                 .title("Temperature")
                 .titleAlignment(TextAlignment.CENTER)
                 .description("...")
                 .build();
 
-        windSpeedTile = TileBuilder.create().skinType(Tile.SkinType.CHARACTER)
-                .prefSize(TILE_WIDTH+150, TILE_HEIGHT)
+        Tile windSpeedTile = TileBuilder.create().skinType(Tile.SkinType.CHARACTER)
+                .prefSize(TILE_WIDTH + 150, TILE_HEIGHT)
                 .title("Wind Speed")
                 .titleAlignment(TextAlignment.CENTER)
                 .description("...")
                 .build();
 
-        windDirectionTile = TileBuilder.create().skinType(Tile.SkinType.CHARACTER)
-                .prefSize(TILE_WIDTH+150, TILE_HEIGHT)
+        Tile windDirectionTile = TileBuilder.create().skinType(Tile.SkinType.CHARACTER)
+                .prefSize(TILE_WIDTH + 150, TILE_HEIGHT)
                 .title("Wind Direction")
                 .titleAlignment(TextAlignment.CENTER)
                 .description("...")
                 .build();
 
-        areaChartTileTemperature = TileBuilder.create()
+        Tile areaChartTileTemperature = TileBuilder.create()
                 .skinType(Tile.SkinType.SMOOTHED_CHART)
-                .prefSize(TILE_WIDTH+150, TILE_HEIGHT)
+                .prefSize(TILE_WIDTH + 150, TILE_HEIGHT)
                 .title("Hourly Temperature")
                 .chartType(Tile.ChartType.AREA)
                 .animated(false)
@@ -97,9 +78,9 @@ public class MainFX extends Application{
                 .tooltipTimeout(1000)
                 .build();
 
-        areaChartTileRain = TileBuilder.create()
+        Tile areaChartTileRain = TileBuilder.create()
                 .skinType(Tile.SkinType.SMOOTHED_CHART)
-                .prefSize(TILE_WIDTH+150, TILE_HEIGHT)
+                .prefSize(TILE_WIDTH + 150, TILE_HEIGHT)
                 .title("Hourly Rain")
                 .chartType(Tile.ChartType.AREA)
                 .animated(false)
@@ -107,9 +88,9 @@ public class MainFX extends Application{
                 .tooltipTimeout(1000)
                 .build();
 
-        areaChartTileHumidity = TileBuilder.create()
+        Tile areaChartTileHumidity = TileBuilder.create()
                 .skinType(Tile.SkinType.SMOOTHED_CHART)
-                .prefSize(TILE_WIDTH+150, TILE_HEIGHT)
+                .prefSize(TILE_WIDTH + 150, TILE_HEIGHT)
                 .title("Hourly Humidity")
                 .chartType(Tile.ChartType.AREA)
                 .animated(false)
@@ -117,9 +98,9 @@ public class MainFX extends Application{
                 .tooltipTimeout(1000)
                 .build();
 
-        areaChartTileUV = TileBuilder.create()
+        Tile areaChartTileUV = TileBuilder.create()
                 .skinType(Tile.SkinType.SMOOTHED_CHART)
-                .prefSize(TILE_WIDTH+150, TILE_HEIGHT)
+                .prefSize(TILE_WIDTH + 150, TILE_HEIGHT)
                 .title("Daily UV Index")
                 .chartType(Tile.ChartType.AREA)
                 .animated(false)
@@ -127,9 +108,9 @@ public class MainFX extends Application{
                 .tooltipTimeout(1000)
                 .build();
 
-        areaChartTileWindSpeed = TileBuilder.create()
+        Tile areaChartTileWindSpeed = TileBuilder.create()
                 .skinType(Tile.SkinType.SMOOTHED_CHART)
-                .prefSize(TILE_WIDTH+150, TILE_HEIGHT)
+                .prefSize(TILE_WIDTH + 150, TILE_HEIGHT)
                 .title("Wind Speed")
                 .chartType(Tile.ChartType.AREA)
                 .animated(false)
@@ -137,9 +118,9 @@ public class MainFX extends Application{
                 .tooltipTimeout(1000)
                 .build();
 
-        areaChartTileWindGusts = TileBuilder.create()
+        Tile areaChartTileWindGusts = TileBuilder.create()
                 .skinType(Tile.SkinType.SMOOTHED_CHART)
-                .prefSize(TILE_WIDTH+150, TILE_HEIGHT)
+                .prefSize(TILE_WIDTH + 150, TILE_HEIGHT)
                 .title("Wind Gusts")
                 .chartType(Tile.ChartType.AREA)
                 .animated(false)
@@ -147,9 +128,9 @@ public class MainFX extends Application{
                 .tooltipTimeout(1000)
                 .build();
 
-        areaChartTilePrecipitation = TileBuilder.create()
+        Tile areaChartTilePrecipitation = TileBuilder.create()
                 .skinType(Tile.SkinType.SMOOTHED_CHART)
-                .prefSize(TILE_WIDTH+150, TILE_HEIGHT)
+                .prefSize(TILE_WIDTH + 150, TILE_HEIGHT)
                 .title("Precipitation probability")
                 .chartType(Tile.ChartType.AREA)
                 .animated(false)
@@ -158,7 +139,7 @@ public class MainFX extends Application{
                 .build();
 
         FlowGridPane pane = new FlowGridPane(3, 4,
-                clockTile, dateTile, temperatureTile,areaChartTileTemperature,
+                clockTile, dateTile, temperatureTile, areaChartTileTemperature,
                 windSpeedTile, windDirectionTile, areaChartTileWindSpeed,
                 areaChartTileWindGusts, areaChartTileHumidity,
                 areaChartTileRain, areaChartTilePrecipitation, areaChartTileUV);
@@ -182,12 +163,9 @@ public class MainFX extends Application{
 
         stage.show();
 
-        stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-            @Override
-            public void handle(WindowEvent t) {
-                Platform.exit();
-                System.exit(0);
-            }
+        stage.setOnCloseRequest(t -> {
+            Platform.exit();
+            System.exit(0);
         });
 
         ActorSystem system = ActorSystem.create("PiMonitor");

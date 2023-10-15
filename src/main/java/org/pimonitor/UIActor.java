@@ -59,51 +59,46 @@ public class UIActor extends AbstractActor {
                         JsonObject.class,
                         s -> {
                             log.info("Received String message: {}", s);
-                            Platform.runLater(new Runnable() {
-                                @Override
-                                public void run() {
-                                    temperatureTile.setDescription(s.get("current_weather").getAsJsonObject().get("temperature").toString());
-                                    String time = s.get("generationtime_ms").getAsString();
-                                    temperatureTile.setText(time);
-                                    windDirectionTile.setDescription(s.get("current_weather").getAsJsonObject().get("winddirection").toString());
-                                    windDirectionTile.setText(time);
+                            Platform.runLater(() -> {
+                                temperatureTile.setDescription(s.get("current_weather").getAsJsonObject().get("temperature").toString());
+                                String time = s.get("generationtime_ms").getAsString();
+                                temperatureTile.setText(time);
+                                windDirectionTile.setDescription(s.get("current_weather").getAsJsonObject().get("winddirection").toString());
+                                windDirectionTile.setText(time);
 
-                                    Double wind = (s.get("current_weather").getAsJsonObject().get("windspeed").getAsDouble() + 5) / 5.0;
-                                    windSpeedTile.setDescription(Long.valueOf(wind.longValue()).toString());
-                                    windSpeedTile.setText(time);
+                                Double wind = (s.get("current_weather").getAsJsonObject().get("windspeed").getAsDouble() + 5) / 5.0;
+                                windSpeedTile.setDescription(Long.valueOf(wind.longValue()).toString());
+                                windSpeedTile.setText(time);
 
-                                    List<JsonElement> temperatures = s.get("hourly").getAsJsonObject().get("temperature_2m").getAsJsonArray().asList();
-                                    List<JsonElement> humidities = s.get("hourly").getAsJsonObject().get("relativehumidity_2m").getAsJsonArray().asList();
+                                List<JsonElement> temperatures = s.get("hourly").getAsJsonObject().get("temperature_2m").getAsJsonArray().asList();
+                                List<JsonElement> humidities = s.get("hourly").getAsJsonObject().get("relativehumidity_2m").getAsJsonArray().asList();
 
-                                    List<JsonElement> uv = s.get("daily").getAsJsonObject().get("uv_index_max").getAsJsonArray().asList();
+                                List<JsonElement> uv = s.get("daily").getAsJsonObject().get("uv_index_max").getAsJsonArray().asList();
 
-                                    List<JsonElement> hourly_times = s.get("hourly").getAsJsonObject().get("time").getAsJsonArray().asList();
-                                    List<JsonElement> daily_times = s.get("daily").getAsJsonObject().get("time").getAsJsonArray().asList();
-                                    List<JsonElement> rain = s.get("hourly").getAsJsonObject().get("rain").getAsJsonArray().asList();
+                                List<JsonElement> hourly_times = s.get("hourly").getAsJsonObject().get("time").getAsJsonArray().asList();
+                                List<JsonElement> daily_times = s.get("daily").getAsJsonObject().get("time").getAsJsonArray().asList();
+                                List<JsonElement> rain = s.get("hourly").getAsJsonObject().get("rain").getAsJsonArray().asList();
 
-                                    List<JsonElement> windgusts_10m = s.get("hourly").getAsJsonObject().get("windgusts_10m").getAsJsonArray().asList();
-                                    List<JsonElement> new_windgusts_10m = getBeaufortScale(windgusts_10m);
+                                List<JsonElement> windgusts_10m = s.get("hourly").getAsJsonObject().get("windgusts_10m").getAsJsonArray().asList();
+                                List<JsonElement> new_windgusts_10m = getBeaufortScale(windgusts_10m);
 
-                                    List<JsonElement> windspeed_10m = s.get("hourly").getAsJsonObject().get("windspeed_10m").getAsJsonArray().asList();
-                                    List<JsonElement> new_windspeed_10m = getBeaufortScale(windspeed_10m);
+                                List<JsonElement> windspeed_10m = s.get("hourly").getAsJsonObject().get("windspeed_10m").getAsJsonArray().asList();
+                                List<JsonElement> new_windspeed_10m = getBeaufortScale(windspeed_10m);
 
-                                    List<JsonElement> precipitation_probability = s.get("hourly").getAsJsonObject().get("precipitation_probability").getAsJsonArray().asList();
+                                List<JsonElement> precipitation_probability = s.get("hourly").getAsJsonObject().get("precipitation_probability").getAsJsonArray().asList();
 
-                                    plotChartHourly(hourly_times, temperatures, areaTileTemperature,"Temperature", time);
-                                    plotChartHourly(hourly_times, humidities, areaTileHumidity, "Humidity", time);
-                                    plotChartDaily(daily_times, uv, areaTileUV, "UV", time);
-                                    plotChartHourly(hourly_times, rain, areaTileRain, "Rain", time);
-                                    plotChartHourly(hourly_times,precipitation_probability, areaChartTileprecipitation, "Precipitation Probability", time);
-                                    plotChartHourly(hourly_times,new_windgusts_10m, areaChartTileWindGusts, "Wind Gusts", time);
-                                    plotChartHourly(hourly_times,new_windspeed_10m, areaChartTileWindSpeed, "Wind Speed", time);
+                                plotChartHourly(hourly_times, temperatures, areaTileTemperature,"Temperature", time);
+                                plotChartHourly(hourly_times, humidities, areaTileHumidity, "Humidity", time);
+                                plotChartDaily(daily_times, uv, areaTileUV, "UV", time);
+                                plotChartHourly(hourly_times, rain, areaTileRain, "Rain", time);
+                                plotChartHourly(hourly_times,precipitation_probability, areaChartTileprecipitation, "Precipitation Probability", time);
+                                plotChartHourly(hourly_times,new_windgusts_10m, areaChartTileWindGusts, "Wind Gusts", time);
+                                plotChartHourly(hourly_times,new_windspeed_10m, areaChartTileWindSpeed, "Wind Speed", time);
 
-                                }
                             });
                         })
                 .match( String.class,
-                        s -> {
-                            clockTile.setText(s);
-                        })
+                        clockTile::setText)
                 .matchAny(o -> log.info("received unknown message"))
                 .build();
     }
@@ -111,15 +106,14 @@ public class UIActor extends AbstractActor {
     private List<JsonElement> getBeaufortScale(List<JsonElement> list) {
         Stream<JsonElement> stream = list.stream().map(x -> {
             Double y = (x.getAsDouble() + 5) / 5;
-            Long w = Long.valueOf(y.longValue());
-            JsonElement j = JsonParser.parseString(w.toString());
-            return j;
+            Long w = y.longValue();
+            return JsonParser.parseString(w.toString());
         });
         return stream.collect(Collectors.toList());
     }
 
     private XYChart.Series<String, Number> getEmptySeriesFromTile(Tile tile, String title) {
-        XYChart.Series<String, Number> series = new XYChart.Series();
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
         series.setName(title);
 
         if (tile.getSeries().size() > 0) {
@@ -143,7 +137,7 @@ public class UIActor extends AbstractActor {
 
             time = new DateTime(keys.get(i).getAsLong()*1000);
 
-            series.getData().add(new XYChart.Data(getKeyFromHourlyDate(time) != "" ? getKeyFromHourlyDate(time) : keyToDisplay, values.get(i).getAsDouble()));
+            series.getData().add(new XYChart.Data<>(!getKeyFromHourlyDate(time).equals("") ? getKeyFromHourlyDate(time) : keyToDisplay, values.get(i).getAsDouble()));
         }
 
         tile.setText(text);
@@ -168,7 +162,7 @@ public class UIActor extends AbstractActor {
 
             time = new DateTime(keys.get(i).getAsLong()*1000);
 
-            series.getData().add(new XYChart.Data(getKeyFromDailyDate(time) != "" ? getKeyFromDailyDate(time) : keyToDisplay, values.get(i).getAsDouble()));
+            series.getData().add(new XYChart.Data<>(!getKeyFromDailyDate(time).equals("") ? getKeyFromDailyDate(time) : keyToDisplay, values.get(i).getAsDouble()));
         }
 
         tile.setText(text);

@@ -19,12 +19,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Date;
+import java.util.Objects;
 import java.util.StringTokenizer;
 
 public class NamedayActor  extends AbstractActorWithTimers {
 
     private static ActorRef ui;
-    private static Object TICK_KEY = "TickKey";
+    private static final Object TICK_KEY = "TickKey";
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
     private final OkHttpClient client;
 
@@ -36,7 +37,7 @@ public class NamedayActor  extends AbstractActorWithTimers {
         client = new OkHttpClient();
     }
 
-    private static SupervisorStrategy strategy =
+    private static final SupervisorStrategy strategy =
             new OneForOneStrategy(
                     10,
                     Duration.ofMinutes(1),
@@ -52,9 +53,7 @@ public class NamedayActor  extends AbstractActorWithTimers {
     public Receive createReceive() {
         return receiveBuilder().match(
                         String.class,
-                        message -> {
-                            ui.tell(getNameday(), getSelf());
-                        })
+                        message -> ui.tell(getNameday(), getSelf()))
                 .matchAny(o -> log.info("received unknown message"))
                 .build();
     }
@@ -63,7 +62,7 @@ public class NamedayActor  extends AbstractActorWithTimers {
         String nameday="unknown nameday";
 
         HttpUrl.Builder urlBuilder
-                = HttpUrl.parse("https://www.eortologio.net/rss/today.xml").newBuilder();
+                = Objects.requireNonNull(HttpUrl.parse("https://www.eortologio.net/rss/today.xml")).newBuilder();
 
         String url = urlBuilder.build().toString();
 
@@ -73,7 +72,7 @@ public class NamedayActor  extends AbstractActorWithTimers {
         Call call = client.newCall(request);
         Response response = call.execute();
 
-        InputStream responseStream = response.body().byteStream();
+        InputStream responseStream = Objects.requireNonNull(response.body()).byteStream();
 
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
