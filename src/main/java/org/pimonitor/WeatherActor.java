@@ -2,8 +2,11 @@ package org.pimonitor;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.actor.OneForOneStrategy;
+import akka.actor.SupervisorStrategy;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.pf.DeciderBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -25,10 +28,23 @@ public class WeatherActor extends AbstractActorWithTimers {
         getJSONObject();
         
         getSelf().tell("tick", getSelf());
-        getTimers().startTimerAtFixedRate(TICK_KEY, "tick", Duration.ofMillis(5000));
+        getTimers().startTimerAtFixedRate(TICK_KEY, "tick", Duration.ofMillis(300000));
         WeatherActor.ui = ui;
         client = new OkHttpClient();
         gson = new Gson();
+    }
+
+    private static SupervisorStrategy strategy =
+            new OneForOneStrategy(
+                    10,
+                    Duration.ofMinutes(1),
+                    DeciderBuilder.match(Exception.class, e -> SupervisorStrategy.restart())
+                            .matchAny(o -> SupervisorStrategy.escalate())
+                            .build());
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return strategy;
     }
 
     private void getJSONObject() {

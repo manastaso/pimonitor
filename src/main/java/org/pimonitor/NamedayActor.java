@@ -2,20 +2,19 @@ package org.pimonitor;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.actor.OneForOneStrategy;
+import akka.actor.SupervisorStrategy;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.pf.DeciderBuilder;
 import okhttp3.*;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
@@ -35,7 +34,19 @@ public class NamedayActor  extends AbstractActorWithTimers {
         getTimers().startTimerAtFixedRate(TICK_KEY, "tick", Duration.ofMinutes(60));
         NamedayActor.ui = ui;
         client = new OkHttpClient();
+    }
 
+    private static SupervisorStrategy strategy =
+            new OneForOneStrategy(
+                    10,
+                    Duration.ofMinutes(1),
+                    DeciderBuilder.match(Exception.class, e -> SupervisorStrategy.restart())
+                            .matchAny(o -> SupervisorStrategy.escalate())
+                            .build());
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return strategy;
     }
 
     public Receive createReceive() {
@@ -48,7 +59,7 @@ public class NamedayActor  extends AbstractActorWithTimers {
                 .build();
     }
 
-    private String getNameday() throws IOException, XMLStreamException, ParserConfigurationException, SAXException {
+    private String getNameday() throws IOException, ParserConfigurationException, SAXException {
         String nameday="unknown nameday";
 
         HttpUrl.Builder urlBuilder
