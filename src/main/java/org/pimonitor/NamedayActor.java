@@ -90,8 +90,6 @@ public class NamedayActor  extends AbstractActorWithTimers {
             }
         }
 
-        nameday = nameday + " (" + new Date() + ")";
-
         return nameday;
     }
 }

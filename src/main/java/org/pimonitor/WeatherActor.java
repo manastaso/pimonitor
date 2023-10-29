@@ -59,13 +59,15 @@ public class WeatherActor extends AbstractActorWithTimers {
                 = Objects.requireNonNull(HttpUrl.parse("https://api.open-meteo.com" + "/v1/forecast")).newBuilder();
         urlBuilder.addQueryParameter("latitude", "53.551086");
         urlBuilder.addQueryParameter("longitude", "9.993682");
-        urlBuilder.addQueryParameter("current_weather", "true");
+        urlBuilder.addQueryParameter("current", "temperature_2m,apparent_temperature,windspeed,winddirection,weathercode");
+        urlBuilder.addQueryParameter("hourly", "apparent_temperature");
         urlBuilder.addQueryParameter("hourly", "temperature_2m");
         urlBuilder.addQueryParameter("hourly", "relativehumidity_2m");
         urlBuilder.addQueryParameter("hourly", "rain");
         urlBuilder.addQueryParameter("hourly", "precipitation_probability");
         urlBuilder.addQueryParameter("hourly", "windspeed_10m");
         urlBuilder.addQueryParameter("hourly", ",windgusts_10m");
+        urlBuilder.addQueryParameter("hourly", ",pressure_msl,surface_pressure");
         urlBuilder.addQueryParameter("daily", "uv_index_max");
         urlBuilder.addQueryParameter("timezone", "Europe/Berlin");
         urlBuilder.addQueryParameter("timeformat", "unixtime");
