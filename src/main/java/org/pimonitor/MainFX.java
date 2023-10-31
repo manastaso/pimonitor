@@ -3,6 +3,8 @@ package org.pimonitor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import eu.hansolo.medusa.Gauge;
+import eu.hansolo.medusa.GaugeBuilder;
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.TileBuilder;
 import eu.hansolo.tilesfx.tools.FlowGridPane;
@@ -84,11 +86,25 @@ public class MainFX extends Application{
                 .description("...")
                 .build();
 
-        Tile windDirectionTile = TileBuilder.create().skinType(Tile.SkinType.CHARACTER)
+        Gauge windDirectionGauge = GaugeBuilder.create()
+                .minValue(0)
+                .maxValue(360)
+                .startAngle(90)
+                .angleRange(360)
+                .autoScale(true)
+                .tickMarkColor(Color.WHITE)
+                .knobColor(Tile.BLUE)
+                .valueVisible(false)
+                .tickLabelsVisible(false)
+                .needleColor(Color.WHITE)
+                .build();
+
+        Tile windDirectionTile = TileBuilder.create().skinType(Tile.SkinType.CUSTOM)
                 .textSize(Tile.TextSize.BIGGER)
                 .prefSize(TILE_WIDTH, TILE_HEIGHT)
                 .title("Wind Direction")
                 .titleAlignment(TextAlignment.CENTER)
+                .graphic(windDirectionGauge)
                 .description("...")
                 .build();
 
@@ -228,7 +244,7 @@ public class MainFX extends Application{
 
         ActorSystem system = ActorSystem.create("PiMonitor");
         ActorRef ui = system.actorOf(Props.create(UIActor.class, temperatureTile, areaChartTileTemperature,
-                windDirectionTile, windSpeedTile, areaChartTileHumidity, areaChartTileUV,
+                windDirectionTile, windDirectionGauge, windSpeedTile, areaChartTileHumidity, areaChartTileUV,
                 areaChartTileRain, areaChartTilePrecipitation,
                 areaChartTileWindSpeed, areaChartTileWindGusts, nameDayTile, apparentTemperatureTile, weatherCodeTile,
                 areaChartTileSealevelPressure, areaChartTileSurfacePressure), "ui");

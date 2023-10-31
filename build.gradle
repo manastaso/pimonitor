@@ -61,6 +61,10 @@ dependencies {
     implementation "com.typesafe.akka:akka-actor_${versions.ScalaBinary}"
     implementation 'eu.hansolo:tilesfx:11.48'
 
+    implementation ('eu.hansolo:Medusa:11.5') {
+        exclude group: 'org.openjfx'
+    }
+
     // define a BOM and its version
     implementation(platform("com.squareup.okhttp3:okhttp-bom:4.10.0"))
 

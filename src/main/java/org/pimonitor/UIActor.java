@@ -3,10 +3,10 @@ package org.pimonitor;
 import akka.actor.AbstractActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import eu.hansolo.medusa.Gauge;
 import eu.hansolo.tilesfx.Tile;
 import eu.hansolo.tilesfx.chart.TilesFXSeries;
 import javafx.application.Platform;
@@ -75,14 +75,17 @@ public class UIActor extends AbstractActor {
             entry("99", "Thunderstorm with slight and heavy hail")
     );
     private static final JsonParser parser = new JsonParser();
+    private final Gauge windDirectionGauge;
 
-    public UIActor(Tile temperatureTile, Tile areaTileTemperature, Tile windDirectionTile, Tile windSpeedTile,
+    public UIActor(Tile temperatureTile, Tile areaTileTemperature, Tile windDirectionTile, Gauge windDirectionGauge,
+                   Tile windSpeedTile,
                    Tile areaTileHumidity, Tile areaTileUV, Tile areaTileRain, Tile areaChartTileprecipitation,
                    Tile areaChartTileWindSpeed, Tile areaChartTileWindGusts, Tile namedayTile,
                    Tile apparentTemperatureTile, Tile weatherCodeTile,
                    Tile areaChartTileSealevelPressure, Tile areaChartTileSurfacePressure) {
         this.temperatureTile = temperatureTile;
         this.windDirectionTile = windDirectionTile;
+        this.windDirectionGauge = windDirectionGauge;
         this.windSpeedTile = windSpeedTile;
         this.areaTileTemperature = areaTileTemperature;
         this.areaTileHumidity = areaTileHumidity;
@@ -113,8 +116,8 @@ public class UIActor extends AbstractActor {
                                 apparentTemperatureTile.setDescription(s.get("current").getAsJsonObject().get("apparent_temperature").toString());
                                 apparentTemperatureTile.setText(time);
 
-                                windDirectionTile.setDescription(s.get("current").getAsJsonObject().get("winddirection").toString());
                                 windDirectionTile.setText(time);
+                                windDirectionGauge.setValue(360-s.get("current").getAsJsonObject().get("winddirection").getAsDouble());
 
                                 weatherCodeTile.setDescription(WEATHER_CODES.getOrDefault(s.get("current").getAsJsonObject().get("weathercode").toString(), "Unknown weather code"));
                                 windDirectionTile.setText(time);
@@ -201,7 +204,11 @@ public class UIActor extends AbstractActor {
 
             time = new DateTime(keys.get(i).getAsLong() * 1000);
 
-            series.getData().add(new XYChart.Data<>(!getKeyFromHourlyDate(time).equals("") ? getKeyFromHourlyDate(time) : keyToDisplay, values.get(i).getAsDouble()));
+            Integer keyFromHourlyDate = getKeyFromHourlyDate(time);
+            if (keyFromHourlyDate > 0 && keyFromHourlyDate < 24) {
+                String keyFromHourlyDateString = keyFromHourlyDate.toString();
+                series.getData().add(new XYChart.Data<>(!keyFromHourlyDateString.equals("") ? keyFromHourlyDateString : keyToDisplay, values.get(i).getAsDouble()));
+            }
         }
 
         tile.setText(text);
@@ -240,9 +247,8 @@ public class UIActor extends AbstractActor {
                             new Stop(1, Color.TRANSPARENT))));
     }
 
-    private static String getKeyFromHourlyDate(DateTime time) {
-        Hours hours = Hours.hoursBetween(DateTime.now(), time);
-        return Integer.toString(hours.getHours());
+    private static Integer getKeyFromHourlyDate(DateTime time) {
+        return Integer.valueOf(Hours.hoursBetween(DateTime.now(), time).getHours());
     }
 
     private static String getKeyFromDailyDate(DateTime time) {
