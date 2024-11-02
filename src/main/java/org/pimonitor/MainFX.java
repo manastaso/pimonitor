@@ -5,28 +5,36 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import eu.hansolo.medusa.Gauge;
 import eu.hansolo.medusa.GaugeBuilder;
-import eu.hansolo.tilesfx.Tile;
-import eu.hansolo.tilesfx.TileBuilder;
+import eu.hansolo.tilesfx.*;
 import eu.hansolo.tilesfx.tools.FlowGridPane;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.CornerRadii;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class MainFX extends Application{
 
     private static final double TILE_WIDTH = 200;
     private static final double TILE_HEIGHT = 150;
+    private double width;
+
+    private List<Stage> stages = new ArrayList<>();
 
     public static void main(String[] args) {
         launch();
@@ -38,10 +46,27 @@ public class MainFX extends Application{
                 .skinType(Tile.SkinType.CLOCK)
                 .title("Clock")
                 .prefSize(TILE_WIDTH, TILE_HEIGHT)
+                .showInfoRegion(true)
+                .tooltipText("News appearing here")
+                .infoRegionTooltipText("News appearing here")
                 .dateVisible(true)
                 .locale(Locale.US)
                 .running(true)
                 .build();
+
+        clockTile.onMouseClickedProperty().setValue(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                if (clockTile.getTooltip().isShowing()) {
+                    clockTile.getTooltip().hide();
+                }
+                else{
+                    clockTile.setTooltipText(clockTile.getInfoRegionTooltipText());
+                    clockTile.getTooltip().setFont(Font.font(14));
+                    clockTile.getTooltip().show(clockTile.getParent().getScene().getWindow());
+                }
+            }
+        });
 
         Tile nameDayTile = TileBuilder.create()
                 .skinType(Tile.SkinType.TEXT)
@@ -69,14 +94,21 @@ public class MainFX extends Application{
                 .description("...")
                 .build();
 
-        Tile weatherCodeTile = TileBuilder.create().skinType(Tile.SkinType.TEXT)
+        Tile radarTile = TileBuilder.create()
+                .skinType(Tile.SkinType.IMAGE)
                 .textSize(Tile.TextSize.BIGGER)
+                .descriptionAlignment(Pos.BASELINE_LEFT)
                 .prefSize(TILE_WIDTH, TILE_HEIGHT)
-                .title("Weather Code")
-                .descriptionAlignment(Pos.CENTER)
-                .titleAlignment(TextAlignment.CENTER)
+                .image(new Image("https://www.dwd.de/DWD/wetter/radar/radfilm_brd_akt.gif"))
+                .title("DWDS radar")
                 .description("...")
                 .build();
+
+        if (radarTile.getImage().isError()) {
+            System.err.println("PI-MONITOR IMAGE ERROR");
+            System.err.println(radarTile.getImage().getException());
+            System.err.println(radarTile.getImage().errorProperty());
+        }
 
         Tile windSpeedTile = TileBuilder.create().skinType(Tile.SkinType.CHARACTER)
                 .textSize(Tile.TextSize.BIGGER)
@@ -119,22 +151,33 @@ public class MainFX extends Application{
                 .tooltipTimeout(1000)
                 .build();
 
-        Tile areaChartTileSealevelPressure = TileBuilder.create()
+        Tile areaChartTileLQI = TileBuilder.create()
+                .skinType(Tile.SkinType.MATRIX)
                 .textSize(Tile.TextSize.BIGGER)
-                .skinType(Tile.SkinType.SMOOTHED_CHART)
                 .prefSize(TILE_WIDTH, TILE_HEIGHT)
-                .title("Sea Level Pressure")
-                .chartType(Tile.ChartType.AREA)
-                .animated(false)
-                .smoothing(true)
-                .tooltipTimeout(1000)
+                .title("LQI")
+                .text("LQI Umweltbundesamt")
+                .matrixSize(3,10)
+                .maxValue(6)
+                .minValue(-1)
                 .build();
 
-        Tile areaChartTileSurfacePressure = TileBuilder.create()
+        Tile areaChartTilePollen = TileBuilder.create()
+                .skinType(Tile.SkinType.MATRIX)
+                .textSize(Tile.TextSize.BIGGER)
+                .prefSize(TILE_WIDTH, TILE_HEIGHT)
+                .title("Pollen")
+                .text("Pollen forecast DWD")
+                .matrixSize(24,10)
+                .maxValue(3)
+                .minValue(-1)
+                .build();
+
+        Tile areaChartTileHumidity = TileBuilder.create()
                 .textSize(Tile.TextSize.BIGGER)
                 .skinType(Tile.SkinType.SMOOTHED_CHART)
                 .prefSize(TILE_WIDTH, TILE_HEIGHT)
-                .title("Surface Pressure")
+                .title("Hourly Humidity")
                 .chartType(Tile.ChartType.AREA)
                 .animated(false)
                 .smoothing(true)
@@ -152,16 +195,10 @@ public class MainFX extends Application{
                 .tooltipTimeout(1000)
                 .build();
 
-        Tile areaChartTileHumidity = TileBuilder.create()
-                .textSize(Tile.TextSize.BIGGER)
-                .skinType(Tile.SkinType.SMOOTHED_CHART)
-                .prefSize(TILE_WIDTH, TILE_HEIGHT)
-                .title("Hourly Humidity")
-                .chartType(Tile.ChartType.AREA)
-                .animated(false)
-                .smoothing(true)
-                .tooltipTimeout(1000)
-                .build();
+        EventHandler<MouseEvent> radarStageHandler = new ImageStageHandler<MouseEvent>("https://www.dwd.de/DWD/wetter/radar/radfilm_brd_akt.gif",
+                stages, 0.5);
+
+        radarTile.onMouseClickedProperty().setValue(radarStageHandler);
 
         Tile areaChartTileUV = TileBuilder.create()
                 .textSize(Tile.TextSize.BIGGER)
@@ -209,12 +246,10 @@ public class MainFX extends Application{
 
         FlowGridPane pane = new FlowGridPane(4, 4,
                 clockTile, nameDayTile, temperatureTile, apparentTemperatureTile,
-                windSpeedTile, windDirectionTile, areaChartTileTemperature, weatherCodeTile, areaChartTileWindSpeed,
-                areaChartTileWindGusts, areaChartTileHumidity, areaChartTileSealevelPressure,
-                areaChartTileRain, areaChartTilePrecipitation, areaChartTileUV, areaChartTileSurfacePressure);
+                windSpeedTile, windDirectionTile, areaChartTileHumidity, radarTile, areaChartTileWindSpeed,
+                areaChartTileWindGusts, areaChartTileTemperature, areaChartTileLQI,
+                areaChartTileRain, areaChartTilePrecipitation, areaChartTileUV, areaChartTilePollen);
 
-        pane.setHgap(5);
-        pane.setVgap(5);
         pane.setNoOfCols(3);
         pane.setNoOfCols(4);
         pane.setNoOfRows(3);
@@ -234,6 +269,8 @@ public class MainFX extends Application{
         stage.setScene(scene);
         stage.setFullScreen(true);
         stage.setTitle("PiMonitor");
+        width = stage.getWidth();
+        double height = stage.getHeight();
 
         stage.show();
 
@@ -246,9 +283,13 @@ public class MainFX extends Application{
         ActorRef ui = system.actorOf(Props.create(UIActor.class, temperatureTile, areaChartTileTemperature,
                 windDirectionTile, windDirectionGauge, windSpeedTile, areaChartTileHumidity, areaChartTileUV,
                 areaChartTileRain, areaChartTilePrecipitation,
-                areaChartTileWindSpeed, areaChartTileWindGusts, nameDayTile, apparentTemperatureTile, weatherCodeTile,
-                areaChartTileSealevelPressure, areaChartTileSurfacePressure), "ui");
+                areaChartTileWindSpeed, areaChartTileWindGusts, nameDayTile, apparentTemperatureTile, radarTile,
+                areaChartTileLQI, areaChartTilePollen, clockTile), "ui");
         system.actorOf(Props.create(WeatherActor.class, ui), "weather");
         system.actorOf(Props.create(NamedayActor.class, ui), "namedays");
+        system.actorOf(Props.create(PollenActor.class, ui), "pollen");
+        system.actorOf(Props.create(LQIActor.class, ui), "lqi");
+        system.actorOf(Props.create(ClockActor.class, ui), "clock");
+        system.actorOf(Props.create(NewsFeedActor.class, ui), "ieidiseis");
     }
 }

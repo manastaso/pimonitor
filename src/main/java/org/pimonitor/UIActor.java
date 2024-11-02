@@ -8,9 +8,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import eu.hansolo.medusa.Gauge;
 import eu.hansolo.tilesfx.Tile;
+import eu.hansolo.tilesfx.chart.ChartData;
 import eu.hansolo.tilesfx.chart.TilesFXSeries;
 import javafx.application.Platform;
 import javafx.scene.chart.XYChart;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
@@ -18,8 +20,8 @@ import javafx.scene.paint.Stop;
 import org.joda.time.DateTime;
 import org.joda.time.Hours;
 
-import java.util.List;
-import java.util.Map;
+import java.lang.management.ManagementFactory;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,10 +41,11 @@ public class UIActor extends AbstractActor {
     private final Tile areaChartTileWindGusts;
     private final Tile areaChartTileWindSpeed;
     private final Tile namedayTile;
+    private final Tile clockTile;
     private final Tile apparentTemperatureTile;
-    private final Tile weatherCodeTile;
-    private final Tile areaChartTileSealevelPressure;
-    private final Tile areaChartTileSurfacePressure;
+    private final Tile radarTile;
+    private final Tile areaChartTileLQI;
+    private final Tile areaChartTilePollen;
 
     private static final Map<String, String> WEATHER_CODES = Map.ofEntries(
             entry("0", "Clear sky"),
@@ -81,8 +84,8 @@ public class UIActor extends AbstractActor {
                    Tile windSpeedTile,
                    Tile areaTileHumidity, Tile areaTileUV, Tile areaTileRain, Tile areaChartTileprecipitation,
                    Tile areaChartTileWindSpeed, Tile areaChartTileWindGusts, Tile namedayTile,
-                   Tile apparentTemperatureTile, Tile weatherCodeTile,
-                   Tile areaChartTileSealevelPressure, Tile areaChartTileSurfacePressure) {
+                   Tile apparentTemperatureTile, Tile radarTile,
+                   Tile areaChartTileLQI, Tile areaChartTilePollen, Tile clockTile) {
         this.temperatureTile = temperatureTile;
         this.windDirectionTile = windDirectionTile;
         this.windDirectionGauge = windDirectionGauge;
@@ -96,9 +99,10 @@ public class UIActor extends AbstractActor {
         this.areaChartTileWindSpeed = areaChartTileWindSpeed;
         this.namedayTile = namedayTile;
         this.apparentTemperatureTile = apparentTemperatureTile;
-        this.weatherCodeTile = weatherCodeTile;
-        this.areaChartTileSealevelPressure = areaChartTileSealevelPressure;
-        this.areaChartTileSurfacePressure = areaChartTileSurfacePressure;
+        this.radarTile = radarTile;
+        this.areaChartTileLQI = areaChartTileLQI;
+        this.areaChartTilePollen = areaChartTilePollen;
+        this.clockTile = clockTile;
     }
 
     @Override
@@ -110,7 +114,7 @@ public class UIActor extends AbstractActor {
                             log.info("Received String message: {}", s);
                             Platform.runLater(() -> {
                                 temperatureTile.setDescription(s.get("current").getAsJsonObject().get("temperature_2m").toString());
-                                String time = s.get("generationtime_ms").getAsString();
+                                String time = DateTime.now().toString("HH:mm");
                                 temperatureTile.setText(time);
 
                                 apparentTemperatureTile.setDescription(s.get("current").getAsJsonObject().get("apparent_temperature").toString());
@@ -119,7 +123,6 @@ public class UIActor extends AbstractActor {
                                 windDirectionTile.setText(time);
                                 windDirectionGauge.setValue(360-s.get("current").getAsJsonObject().get("winddirection").getAsDouble());
 
-                                weatherCodeTile.setDescription(WEATHER_CODES.getOrDefault(s.get("current").getAsJsonObject().get("weathercode").toString(), "Unknown weather code"));
                                 windDirectionTile.setText(time);
 
                                 Double wind = (s.get("current").getAsJsonObject().get("windspeed").getAsDouble() + 5) / 5.0;
@@ -153,11 +156,7 @@ public class UIActor extends AbstractActor {
                                 plotChartHourly(hourly_times, pressure_msl.stream().map(x -> {
                                     Double y = x.getAsDouble() / 33.863886666667;
                                     return parser.parseString(y.toString());
-                                }).collect(Collectors.toList()), areaChartTileSealevelPressure, "Sealevel Pressure", time);
-                                plotChartHourly(hourly_times, surface_pressure.stream().map(x -> {
-                                    Double y = x.getAsDouble() / 33.863886666667;
-                                    return parser.parseString(y.toString());
-                                }).collect(Collectors.toList()), areaChartTileSurfacePressure, "Surface Pressure", time);
+                                }).collect(Collectors.toList()), areaChartTileLQI, "Sealevel Pressure", time);
                                 plotChartHourly(hourly_times, precipitation_probability, areaChartTileprecipitation, "Precipitation Probability", time);
                                 plotChartHourly(hourly_times, new_windgusts_10m, areaChartTileWindGusts, "Wind Gusts", time);
                                 plotChartHourly(hourly_times, new_windspeed_10m, areaChartTileWindSpeed, "Wind Speed", time);
@@ -166,8 +165,114 @@ public class UIActor extends AbstractActor {
                         })
                 .match(String.class,
                         s -> Platform.runLater(() -> namedayTile.setDescription(s)))
+                .match(Pollen.class,
+                        s -> Platform.runLater(() -> processPollen(s)))
+                .match(LQI.class,
+                        s -> Platform.runLater(() -> processLQI(s)))
+                .match(Long.class,
+                        s -> Platform.runLater(() -> clockTile.setTime(s.longValue()))
+                        )
+                .match(ArrayList.class,
+                        s -> Platform.runLater(() -> {
+                                    String text = "- " + s.get(0).toString() +
+                                            System.lineSeparator() +
+                                            "- " + s.get(1).toString() +
+                                            System.lineSeparator() +
+                                            "- " + s.get(2).toString();
+                                    clockTile.setInfoRegionTooltipText(text);
+                                    clockTile.setTitle(String.valueOf(Runtime.getRuntime().freeMemory()/1024/1024));
+                                    radarTile.setImage(new Image("https://www.dwd.de/DWD/wetter/radar/radfilm_brd_akt.gif"));
+                                })
+                )
                 .matchAny(o -> log.info("received unknown message"))
                 .build();
+    }
+
+    private void processLQI(LQI s) {
+        areaChartTileLQI.setMatrixSize(s.measurements.size(), 10);
+        List<ChartData> chartData = new ArrayList<>(s.measurements.size());
+        s.measurements.forEach(measurement -> {
+            chartData.add(new ChartData(measurement.component, measurement.measurement, getLQIColor(measurement.measurement)));
+        });
+        areaChartTileLQI.setChartData(chartData);
+        areaChartTileLQI.setText(s.dates);
+    }
+
+    private Color getLQIColor(int value) {
+        switch (value) {
+            case 0: return  Tile.LIGHT_GREEN;
+            case 1: return  Tile.GREEN;
+            case 2: return  Tile.YELLOW;
+            case 3: return  Tile.YELLOW_ORANGE;
+            case 4: return  Tile.LIGHT_RED;
+            case 5: return  Tile.RED;
+            case 6: return  Tile.PINK;
+            default: return Tile.GRAY;
+        }
+    }
+
+    private void processPollen(Pollen s) {
+        Random RND       = new Random();
+        List<ChartData> chartData = new ArrayList<>(10);
+        chartData.add(new ChartData("Erle(today)", getPollenValue(s.Erle.today), getPollenColor(getPollenValue(s.Erle.today))));
+        chartData.add(new ChartData("Erle(tomorrow)", getPollenValue(s.Erle.tomorrow), getPollenColor(getPollenValue(s.Erle.tomorrow))));
+        chartData.add(new ChartData("Erle(dayafter_to)", getPollenValue(s.Erle.dayafter_to), getPollenColor(getPollenValue(s.Erle.dayafter_to))));
+        chartData.add(new ChartData("Graeser(today)", getPollenValue(s.Graeser.today), getPollenColor(getPollenValue(s.Graeser.today))));
+        chartData.add(new ChartData("Graeser(tomorrow)", getPollenValue(s.Graeser.tomorrow), getPollenColor(getPollenValue(s.Graeser.tomorrow))));
+        chartData.add(new ChartData("Graeser(dayafter_to)", getPollenValue(s.Graeser.dayafter_to), getPollenColor(getPollenValue(s.Graeser.dayafter_to))));
+        chartData.add(new ChartData("Roggen(today)", getPollenValue(s.Roggen.today), getPollenColor(getPollenValue(s.Roggen.today))));
+        chartData.add(new ChartData("Roggen(tomorrow)", getPollenValue(s.Roggen.tomorrow), getPollenColor(getPollenValue(s.Roggen.tomorrow))));
+        chartData.add(new ChartData("Roggen(dayafter_to)", getPollenValue(s.Roggen.dayafter_to), getPollenColor(getPollenValue(s.Roggen.dayafter_to))));
+        chartData.add(new ChartData("Beifuss(today)", getPollenValue(s.Beifuss.today), getPollenColor(getPollenValue(s.Beifuss.today))));
+        chartData.add(new ChartData("Beifuss(tomorrow)", getPollenValue(s.Beifuss.tomorrow), getPollenColor(getPollenValue(s.Beifuss.tomorrow))));
+        chartData.add(new ChartData("Beifuss(dayafter_to)", getPollenValue(s.Beifuss.dayafter_to), getPollenColor(getPollenValue(s.Beifuss.dayafter_to))));
+        chartData.add(new ChartData("Esche(today)", getPollenValue(s.Esche.today), getPollenColor(getPollenValue(s.Esche.today))));
+        chartData.add(new ChartData("Esche(tomorrow)", getPollenValue(s.Esche.tomorrow), getPollenColor(getPollenValue(s.Esche.tomorrow))));
+        chartData.add(new ChartData("Esche(dayafter_to)", getPollenValue(s.Esche.dayafter_to), getPollenColor(getPollenValue(s.Esche.dayafter_to))));
+        chartData.add(new ChartData("Birke(today)", getPollenValue(s.Birke.today), getPollenColor(getPollenValue(s.Birke.today))));
+        chartData.add(new ChartData("Birke(tomorrow)", getPollenValue(s.Birke.tomorrow), getPollenColor(getPollenValue(s.Birke.tomorrow))));
+        chartData.add(new ChartData("Birke(dayafter_to)", getPollenValue(s.Birke.dayafter_to), getPollenColor(getPollenValue(s.Birke.dayafter_to))));
+        chartData.add(new ChartData("Ambrosia(today)", getPollenValue(s.Ambrosia.today), getPollenColor(getPollenValue(s.Ambrosia.today))));
+        chartData.add(new ChartData("Ambrosia(tomorrow)", getPollenValue(s.Ambrosia.tomorrow), getPollenColor(getPollenValue(s.Ambrosia.tomorrow))));
+        chartData.add(new ChartData("Ambrosia(dayafter_to)", getPollenValue(s.Ambrosia.dayafter_to), getPollenColor(getPollenValue(s.Ambrosia.dayafter_to))));
+        chartData.add(new ChartData("Hasel(today)", getPollenValue(s.Hasel.today), getPollenColor(getPollenValue(s.Hasel.today))));
+        chartData.add(new ChartData("Hasel(tomorrow)", getPollenValue(s.Hasel.tomorrow), getPollenColor(getPollenValue(s.Hasel.tomorrow))));
+        chartData.add(new ChartData("Hasel(dayafter_to)", getPollenValue(s.Hasel.dayafter_to), getPollenColor(getPollenValue(s.Hasel.dayafter_to))));
+        areaChartTilePollen.setChartData(chartData);
+        areaChartTilePollen.setText(s.last_update);
+    }
+
+    private Color getPollenColor(double value) {
+        if (value == 0.0)
+            return Tile.LIGHT_GREEN;
+        if (value > 0.0 && value < 1.0)
+            return Tile.GREEN;
+        if (value >= 1.0 && value < 2.0)
+            return Tile.YELLOW;
+        if (value >= 2.0 && value < 3.0)
+            return Tile.LIGHT_RED;
+        if (value >= 3.0)
+            return Tile.RED;
+        return Tile.GRAY;
+    }
+
+
+    private double getPollenValue(String s) {
+        Double d = 0.0;
+        try {
+            d = Double.valueOf(s);
+        }
+        catch (NumberFormatException e){
+            StringTokenizer tokenizer = new StringTokenizer(s, "-");
+            int counter = 0;
+            do {
+                String s1 = tokenizer.nextToken();
+                d += Double.valueOf(s1);
+                counter += 1;
+            } while (tokenizer.hasMoreTokens());
+            d = d / counter;
+        }
+        return  d;
     }
 
     private List<JsonElement> getBeaufortScale(List<JsonElement> list) {
