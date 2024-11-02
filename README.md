@@ -5,6 +5,9 @@ A WeatherStation with
 - Akka (https://www.akka.io/)
 - OpenMeteo (https://open-meteo.com/)
 - Greek Namedays (https://www.eortologio.net/)
+- LQI monitoring (https://www.umweltbundesamt.de/api/air_data/v3/airqualityforecast/) 
+- Pollen monitoring from DWD (https://opendata.dwd.de/climate_environment/health/alerts/s31fg.json)
 - and with the help of tilesfx (https://github.com/HanSolo/tilesfx)
 
-![image](https://github.com/manastaso/pimonitor/assets/3612128/fdf2d683-c090-4c82-aa2d-a503326a6b98)
+![image](https://github.com/user-attachments/assets/b706397e-4479-477a-86f3-170ffe384e6e)
+
