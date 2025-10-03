@@ -9,5 +9,5 @@ A WeatherStation with
 - Pollen monitoring from DWD (https://opendata.dwd.de/climate_environment/health/alerts/s31fg.json)
 - and with the help of tilesfx (https://github.com/HanSolo/tilesfx)
 
-![image](https://github.com/user-attachments/assets/b706397e-4479-477a-86f3-170ffe384e6e)
+![img.png](img.png)
 
