@@ -68,24 +68,27 @@ public class LQIActor extends AbstractActorWithTimers {
                 .url(url)
                 .build();
         Call call = client.newCall(request);
-        Response response = call.execute();
+        LQI lqi;
+        String responseString;
+        try (Response response = call.execute()) {
 
-        LQI lqi = new LQI();
-        String responseString = Objects.requireNonNull(response.body()).string();
-        JsonObject s = gson.fromJson(responseString, JsonObject.class);
-        lqi.dates = "from " + s.get("dates").getAsJsonObject().get("from").getAsString() + " to " + s.get("dates").getAsJsonObject().get("to").getAsString();
-        Map<String, JsonElement> valueMap = s.get("data").getAsJsonObject().get("844").getAsJsonObject().asMap();
-        for (Map.Entry<String, JsonElement> e : valueMap.entrySet()) {
-            JsonArray componentMeasurement = e.getValue().getAsJsonArray();
-            String measureDate = componentMeasurement.get(0).getAsString();
-            for (JsonElement componentMeasurementElement : componentMeasurement) {
-                if (componentMeasurementElement.isJsonArray()) {
-                    JsonArray componentMeasurementElementArray = componentMeasurementElement.getAsJsonArray();
-                    String component = getComponentNameFromCode(componentMeasurementElementArray.get(0).getAsString());
-                    int measurement = componentMeasurementElementArray.get(2).getAsInt();
-                    lqi.measurements.add(new LQI.Measurement(e.getKey(), measureDate + ", " + component, measurement));
+            lqi = new LQI();
+            responseString = Objects.requireNonNull(response.body()).string();
+            JsonObject s = gson.fromJson(responseString, JsonObject.class);
+            lqi.dates = "from " + s.get("dates").getAsJsonObject().get("from").getAsString() + " to " + s.get("dates").getAsJsonObject().get("to").getAsString();
+            Map<String, JsonElement> valueMap = s.get("data").getAsJsonObject().get("844").getAsJsonObject().asMap();
+            for (Map.Entry<String, JsonElement> e : valueMap.entrySet()) {
+                JsonArray componentMeasurement = e.getValue().getAsJsonArray();
+                String measureDate = componentMeasurement.get(0).getAsString();
+                for (JsonElement componentMeasurementElement : componentMeasurement) {
+                    if (componentMeasurementElement.isJsonArray()) {
+                        JsonArray componentMeasurementElementArray = componentMeasurementElement.getAsJsonArray();
+                        String component = getComponentNameFromCode(componentMeasurementElementArray.get(0).getAsString());
+                        int measurement = componentMeasurementElementArray.get(2).getAsInt();
+                        lqi.measurements.add(new LQI.Measurement(e.getKey(), measureDate + ", " + component, measurement));
+                    }
+
                 }
-
             }
         }
         return lqi;

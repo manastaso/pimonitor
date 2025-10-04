@@ -289,7 +289,7 @@ public class MainFX extends Application{
         system.actorOf(Props.create(NamedayActor.class, ui), "namedays");
         system.actorOf(Props.create(PollenActor.class, ui), "pollen");
         system.actorOf(Props.create(LQIActor.class, ui), "lqi");
-        system.actorOf(Props.create(ClockActor.class, ui), "clock");
+        //system.actorOf(Props.create(ClockActor.class, ui), "clock");
         system.actorOf(Props.create(NewsFeedActor.class, ui), "ieidiseis");
     }
 }

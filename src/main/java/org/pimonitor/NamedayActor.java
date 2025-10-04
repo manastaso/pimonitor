@@ -70,23 +70,25 @@ public class NamedayActor  extends AbstractActorWithTimers {
                 .url(url)
                 .build();
         Call call = client.newCall(request);
-        Response response = call.execute();
+        InputStream responseStream;
+        try (Response response = call.execute()) {
 
-        InputStream responseStream = Objects.requireNonNull(response.body()).byteStream();
+            responseStream = Objects.requireNonNull(response.body()).byteStream();
 
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-        DocumentBuilder db = dbf.newDocumentBuilder();
-        Document doc = db.parse(responseStream);
-        doc.getDocumentElement().normalize();
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            Document doc = db.parse(responseStream);
+            doc.getDocumentElement().normalize();
 
-        nameday = doc.getElementsByTagName("item").item(0).getTextContent();
-        if (nameday != null) {
-            nameday = nameday.trim();
-            StringTokenizer tokenizer = new StringTokenizer(nameday, "(");
-            if (tokenizer.hasMoreTokens()) {
-                nameday = tokenizer.nextToken();
+            nameday = doc.getElementsByTagName("item").item(0).getTextContent();
+            if (nameday != null) {
                 nameday = nameday.trim();
+                StringTokenizer tokenizer = new StringTokenizer(nameday, "(");
+                if (tokenizer.hasMoreTokens()) {
+                    nameday = tokenizer.nextToken();
+                    nameday = nameday.trim();
+                }
             }
         }
 

@@ -154,8 +154,8 @@ public class UIActor extends AbstractActor {
                                 plotChartDaily(daily_times, uv, areaTileUV, "UV", time);
                                 plotChartHourly(hourly_times, rain, areaTileRain, "Rain", time);
                                 plotChartHourly(hourly_times, pressure_msl.stream().map(x -> {
-                                    Double y = x.getAsDouble() / 33.863886666667;
-                                    return parser.parseString(y.toString());
+                                    double y = x.getAsDouble() / 33.863886666667;
+                                    return JsonParser.parseString(Double.toString(y));
                                 }).collect(Collectors.toList()), areaChartTileLQI, "Sealevel Pressure", time);
                                 plotChartHourly(hourly_times, precipitation_probability, areaChartTileprecipitation, "Precipitation Probability", time);
                                 plotChartHourly(hourly_times, new_windgusts_10m, areaChartTileWindGusts, "Wind Gusts", time);

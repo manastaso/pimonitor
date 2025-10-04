@@ -71,19 +71,21 @@ public class NewsFeedActor extends AbstractActorWithTimers {
                 .url(url)
                 .build();
         Call call = client.newCall(request);
-        Response response = call.execute();
+        InputStream responseStream;
+        try (Response response = call.execute()) {
 
-        InputStream responseStream = Objects.requireNonNull(response.body()).byteStream();
+            responseStream = Objects.requireNonNull(response.body()).byteStream();
 
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-        DocumentBuilder db = dbf.newDocumentBuilder();
-        Document doc = db.parse(responseStream);
-        doc.getDocumentElement().normalize();
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            Document doc = db.parse(responseStream);
+            doc.getDocumentElement().normalize();
 
-        NodeList items = doc.getElementsByTagName("item");
-        for (int i = 0; i < items.getLength(); i++) {
-            news.add(doc.getElementsByTagName("item").item(i).getChildNodes().item(1).getTextContent());
+            NodeList items = doc.getElementsByTagName("item");
+            for (int i = 0; i < items.getLength(); i++) {
+                news.add(doc.getElementsByTagName("item").item(i).getChildNodes().item(1).getTextContent());
+            }
         }
 
         return news;

@@ -50,8 +50,8 @@ public class PollenActor extends AbstractActorWithTimers {
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(
-                String.class,
-                message -> ui.tell(getPollenData(), getSelf()))
+                        String.class,
+                        message -> ui.tell(getPollenData(), getSelf()))
                 .matchAny(o -> log.info("received unknown message"))
                 .build();
     }
@@ -67,21 +67,24 @@ public class PollenActor extends AbstractActorWithTimers {
                 .url(url)
                 .build();
         Call call = client.newCall(request);
-        Response response = call.execute();
-
-        String responseString = Objects.requireNonNull(response.body()).string();
-        JsonObject s = gson.fromJson(responseString, JsonObject.class);
-        String last_update = s.get("last_update").getAsString();
-        List<JsonElement> content = s.get("content").getAsJsonArray().asList();
-        ListIterator<JsonElement> contentIterator = content.listIterator();
-        JsonObject element;
+        String responseString;
         Pollen pollen;
-        do {
-            element = contentIterator.next().getAsJsonObject();
-            pollen = gson.fromJson(element.getAsJsonObject().get("Pollen"), Pollen.class);
-        } while (element != null && element.get("partregion_id").getAsInt() != 12 && contentIterator.hasNext());
+        try (Response response = call.execute()) {
 
-        pollen.last_update = last_update;
+            responseString = Objects.requireNonNull(response.body()).string();
+            JsonObject s = gson.fromJson(responseString, JsonObject.class);
+            String last_update = s.get("last_update").getAsString();
+            List<JsonElement> content = s.get("content").getAsJsonArray().asList();
+            ListIterator<JsonElement> contentIterator = content.listIterator();
+            JsonObject element;
+
+            do {
+                element = contentIterator.next().getAsJsonObject();
+                pollen = gson.fromJson(element.getAsJsonObject().get("Pollen"), Pollen.class);
+            } while (element != null && element.get("partregion_id").getAsInt() != 12 && contentIterator.hasNext());
+
+            pollen.last_update = last_update;
+        }
 
         return pollen;
     }

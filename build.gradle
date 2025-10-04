@@ -2,16 +2,17 @@ plugins {
     id 'java'
     id 'idea'
     id 'application'
+    id("org.jetbrains.kotlin.jvm") version "2.2.20"
     id 'org.openjfx.javafxplugin' version '0.1.0'
-    id("io.ktor.plugin") version "2.3.5"
+    id("io.ktor.plugin") version "3.3.0"
 }
 
 apply plugin: "java"
 ext {
     javaMainClass = "org.pimonitor.Main"
 }
+
 application {
-    mainClassName = javaMainClass
     mainClass.set("org.pimonitor.Main")
 }
 
@@ -34,7 +35,6 @@ idea {
 }
 
 javafx {
-    version = "15"
     modules = ['javafx.controls', 'javafx.fxml', 'javafx.web']
 }
 
@@ -66,7 +66,7 @@ dependencies {
     }
 
     // define a BOM and its version
-    implementation(platform("com.squareup.okhttp3:okhttp-bom:4.10.0"))
+    implementation(platform("com.squareup.okhttp3:okhttp-bom:5.1.0"))
 
     // define any required OkHttp artifacts without version
     implementation("com.squareup.okhttp3:okhttp")

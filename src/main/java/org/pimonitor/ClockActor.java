@@ -68,9 +68,10 @@ public class ClockActor extends AbstractActorWithTimers {
                 .build();
 
         Call call = client.newCall(request);
-        Response response = call.execute();
-
-        String responseString = Objects.requireNonNull(response.body()).string();
+        String responseString;
+        try (Response response = call.execute()) {
+            responseString = Objects.requireNonNull(response.body()).string();
+        }
         JsonObject s = gson.fromJson(responseString, JsonObject.class);
         return s.get("unixtime").getAsLong();
     }

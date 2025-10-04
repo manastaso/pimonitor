@@ -79,9 +79,11 @@ public class WeatherActor extends AbstractActorWithTimers {
                 .url(url)
                 .build();
         Call call = client.newCall(request);
-        Response response = call.execute();
+        String responseString;
+        try (Response response = call.execute()) {
 
-        String responseString = Objects.requireNonNull(response.body()).string();
+            responseString = Objects.requireNonNull(response.body()).string();
+        }
         return gson.fromJson(responseString, JsonObject.class);
     }
 }
