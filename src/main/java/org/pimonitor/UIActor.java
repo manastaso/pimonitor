@@ -20,7 +20,6 @@ import javafx.scene.paint.Stop;
 import org.joda.time.DateTime;
 import org.joda.time.Hours;
 
-import java.lang.management.ManagementFactory;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -112,54 +111,35 @@ public class UIActor extends AbstractActor {
                         JsonObject.class,
                         s -> {
                             log.info("Received String message: {}", s);
+
+                            String time = DateTime.now().toString("HH:mm");
+
+                            Double wind = (s.get("current").getAsJsonObject().get("windspeed").getAsDouble() + 5) / 5.0;
+
+                            List<JsonElement> temperatures = s.get("hourly").getAsJsonObject().get("temperature_2m").getAsJsonArray().asList();
+                            List<JsonElement> humidities = s.get("hourly").getAsJsonObject().get("relativehumidity_2m").getAsJsonArray().asList();
+
+                            List<JsonElement> pressure_msl = s.get("hourly").getAsJsonObject().get("pressure_msl").getAsJsonArray().asList();
+                            List<JsonElement> surface_pressure = s.get("hourly").getAsJsonObject().get("surface_pressure").getAsJsonArray().asList();
+
+                            List<JsonElement> uv = s.get("daily").getAsJsonObject().get("uv_index_max").getAsJsonArray().asList();
+
+                            List<JsonElement> hourly_times = s.get("hourly").getAsJsonObject().get("time").getAsJsonArray().asList();
+                            List<JsonElement> daily_times = s.get("daily").getAsJsonObject().get("time").getAsJsonArray().asList();
+                            List<JsonElement> rain = s.get("hourly").getAsJsonObject().get("rain").getAsJsonArray().asList();
+
+                            List<JsonElement> windgusts_10m = s.get("hourly").getAsJsonObject().get("windgusts_10m").getAsJsonArray().asList();
+                            List<JsonElement> new_windgusts_10m = getBeaufortScale(windgusts_10m);
+
+                            List<JsonElement> windspeed_10m = s.get("hourly").getAsJsonObject().get("windspeed_10m").getAsJsonArray().asList();
+                            List<JsonElement> new_windspeed_10m = getBeaufortScale(windspeed_10m);
+
+                            List<JsonElement> precipitation_probability = s.get("hourly").getAsJsonObject().get("precipitation_probability").getAsJsonArray().asList();
+                            String temperatureString = s.get("current").getAsJsonObject().get("apparent_temperature").toString();
+                            String temperature2mString =  s.get("current").getAsJsonObject().get("temperature_2m").toString();
+                            Double windDirectionDouble = s.get("current").getAsJsonObject().get("winddirection").getAsDouble();
                             Platform.runLater(() -> {
-                                temperatureTile.setDescription(s.get("current").getAsJsonObject().get("temperature_2m").toString());
-                                String time = DateTime.now().toString("HH:mm");
-                                temperatureTile.setText(time);
-
-                                apparentTemperatureTile.setDescription(s.get("current").getAsJsonObject().get("apparent_temperature").toString());
-                                apparentTemperatureTile.setText(time);
-
-                                windDirectionTile.setText(time);
-                                windDirectionGauge.setValue(360-s.get("current").getAsJsonObject().get("winddirection").getAsDouble());
-
-                                windDirectionTile.setText(time);
-
-                                Double wind = (s.get("current").getAsJsonObject().get("windspeed").getAsDouble() + 5) / 5.0;
-                                windSpeedTile.setDescription(Long.valueOf(wind.longValue()).toString());
-                                windSpeedTile.setText(time);
-
-                                List<JsonElement> temperatures = s.get("hourly").getAsJsonObject().get("temperature_2m").getAsJsonArray().asList();
-                                List<JsonElement> humidities = s.get("hourly").getAsJsonObject().get("relativehumidity_2m").getAsJsonArray().asList();
-
-                                List<JsonElement> pressure_msl = s.get("hourly").getAsJsonObject().get("pressure_msl").getAsJsonArray().asList();
-                                List<JsonElement> surface_pressure = s.get("hourly").getAsJsonObject().get("surface_pressure").getAsJsonArray().asList();
-
-                                List<JsonElement> uv = s.get("daily").getAsJsonObject().get("uv_index_max").getAsJsonArray().asList();
-
-                                List<JsonElement> hourly_times = s.get("hourly").getAsJsonObject().get("time").getAsJsonArray().asList();
-                                List<JsonElement> daily_times = s.get("daily").getAsJsonObject().get("time").getAsJsonArray().asList();
-                                List<JsonElement> rain = s.get("hourly").getAsJsonObject().get("rain").getAsJsonArray().asList();
-
-                                List<JsonElement> windgusts_10m = s.get("hourly").getAsJsonObject().get("windgusts_10m").getAsJsonArray().asList();
-                                List<JsonElement> new_windgusts_10m = getBeaufortScale(windgusts_10m);
-
-                                List<JsonElement> windspeed_10m = s.get("hourly").getAsJsonObject().get("windspeed_10m").getAsJsonArray().asList();
-                                List<JsonElement> new_windspeed_10m = getBeaufortScale(windspeed_10m);
-
-                                List<JsonElement> precipitation_probability = s.get("hourly").getAsJsonObject().get("precipitation_probability").getAsJsonArray().asList();
-
-                                plotChartHourly(hourly_times, temperatures, areaTileTemperature, "Temperature", time);
-                                plotChartHourly(hourly_times, humidities, areaTileHumidity, "Humidity", time);
-                                plotChartDaily(daily_times, uv, areaTileUV, "UV", time);
-                                plotChartHourly(hourly_times, rain, areaTileRain, "Rain", time);
-                                plotChartHourly(hourly_times, pressure_msl.stream().map(x -> {
-                                    double y = x.getAsDouble() / 33.863886666667;
-                                    return JsonParser.parseString(Double.toString(y));
-                                }).collect(Collectors.toList()), areaChartTileLQI, "Sealevel Pressure", time);
-                                plotChartHourly(hourly_times, precipitation_probability, areaChartTileprecipitation, "Precipitation Probability", time);
-                                plotChartHourly(hourly_times, new_windgusts_10m, areaChartTileWindGusts, "Wind Gusts", time);
-                                plotChartHourly(hourly_times, new_windspeed_10m, areaChartTileWindSpeed, "Wind Speed", time);
+                                updateWeatherInGUI(DateTime.now(), temperature2mString, temperatureString, windDirectionDouble, time, wind, hourly_times, temperatures, humidities, daily_times, uv, rain, pressure_msl, precipitation_probability, new_windgusts_10m, new_windspeed_10m);
 
                             });
                         })
@@ -180,12 +160,49 @@ public class UIActor extends AbstractActor {
                                             System.lineSeparator() +
                                             "- " + s.get(2).toString();
                                     clockTile.setInfoRegionTooltipText(text);
-                                    clockTile.setTitle(String.valueOf(Runtime.getRuntime().freeMemory()/1024/1024));
                                     radarTile.setImage(new Image("https://www.dwd.de/DWD/wetter/radar/radfilm_brd_akt.gif"));
                                 })
                 )
                 .matchAny(o -> log.info("received unknown message"))
                 .build();
+    }
+
+    private void updateWeatherInGUI(DateTime now, String temperature2mString,
+                                    String temperatureString,
+                                    Double windDirectionDouble,
+                                    String time,
+                                    Double wind,
+                                    List<JsonElement> hourly_times,
+                                    List<JsonElement> temperatures,
+                                    List<JsonElement> humidities,
+                                    List<JsonElement> daily_times,
+                                    List<JsonElement> uv,
+                                    List<JsonElement> rain,
+                                    List<JsonElement> pressure_msl,
+                                    List<JsonElement> precipitation_probability,
+                                    List<JsonElement> new_windgusts_10m,
+                                    List<JsonElement> new_windspeed_10m) {
+        clockTile.setTitle(String.valueOf(Runtime.getRuntime().freeMemory()/(1024*1024)));
+        temperatureTile.setDescription(temperature2mString);
+        temperatureTile.setText(time);
+        apparentTemperatureTile.setDescription(temperatureString);
+        apparentTemperatureTile.setText(time);
+        windDirectionTile.setText(time);
+        windDirectionGauge.setValue(360 - windDirectionDouble);
+        windDirectionTile.setText(time);
+        windSpeedTile.setDescription(Long.valueOf(wind.longValue()).toString());
+        windSpeedTile.setText(time);
+        plotChartHourly(hourly_times, temperatures, areaTileTemperature, "Temperature", time);
+        plotChartHourly(hourly_times, humidities, areaTileHumidity, "Humidity", time);
+        plotChartDaily(daily_times, uv, areaTileUV, "UV", time);
+        plotChartHourly(hourly_times, rain, areaTileRain, "Rain", time);
+        plotChartHourly(hourly_times, pressure_msl.stream().map(x -> {
+            double y = x.getAsDouble() / 33.863886666667;
+            return JsonParser.parseString(Double.toString(y));
+        }).collect(Collectors.toList()), areaChartTileLQI, "Sealevel Pressure", time);
+        plotChartHourly(hourly_times, precipitation_probability, areaChartTileprecipitation, "Precipitation Probability", time);
+        plotChartHourly(hourly_times, new_windgusts_10m, areaChartTileWindGusts, "Wind Gusts", time);
+        plotChartHourly(hourly_times, new_windspeed_10m, areaChartTileWindSpeed, "Wind Speed", time);
     }
 
     private void processLQI(LQI s) {
