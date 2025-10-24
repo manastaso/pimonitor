@@ -7,7 +7,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
@@ -17,7 +16,7 @@ public class ImageStageHandler<T extends Event> implements EventHandler<T> {
 
     private final List<Stage> stages;
     private final String imageURL;
-    private double scaleFactor;
+    private final double scaleFactor;
 
     public ImageStageHandler(String imageURL, List<Stage> stages, double scaleFactor) {
         this.imageURL = imageURL;
@@ -39,23 +38,11 @@ public class ImageStageHandler<T extends Event> implements EventHandler<T> {
 
         stage.setScene(scene);
         stages.add(stage);
-        imageView.onMouseClickedProperty().setValue(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                stages.forEach(listedStage -> {
-                    Parent root = listedStage.getScene().getRoot();
-                    if (root instanceof BorderPane) {
-                        BorderPane pane = (BorderPane) root;
-                        Node center = pane.getCenter();
-                        if (center instanceof ImageView) {
-                            ImageView image = (ImageView) center;
-                            image.setImage(null);
-                        }
-                        pane.setCenter(null);
-                    }
-                    listedStage.close();
-                });
-            }
+        imageView.onMouseClickedProperty().setValue(event1 -> {
+            stages.forEach(listedStage -> {
+                Parent root = listedStage.getScene().getRoot();
+                listedStage.close();
+            });
         });
         stage.showAndWait();
     }
