@@ -33,7 +33,7 @@ public class MainFX extends Application{
 
     private final List<Stage> stages = new ArrayList<>();
 
-    public static void start() {
+    public static void main(String[] args) {
         launch();
     }
 
