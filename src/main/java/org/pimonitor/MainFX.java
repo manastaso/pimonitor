@@ -11,12 +11,10 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -32,11 +30,10 @@ public class MainFX extends Application{
 
     private static final double TILE_WIDTH = 200;
     private static final double TILE_HEIGHT = 150;
-    private double width;
 
-    private List<Stage> stages = new ArrayList<>();
+    private final List<Stage> stages = new ArrayList<>();
 
-    public static void main(String[] args) {
+    public static void start() {
         launch();
     }
 
@@ -54,17 +51,12 @@ public class MainFX extends Application{
                 .running(true)
                 .build();
 
-        clockTile.onMouseClickedProperty().setValue(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                if (clockTile.getTooltip().isShowing()) {
-                    clockTile.getTooltip().hide();
-                }
-                else{
-                    clockTile.setTooltipText(clockTile.getInfoRegionTooltipText());
-                    clockTile.getTooltip().setFont(Font.font(14));
-                    clockTile.getTooltip().show(clockTile.getParent().getScene().getWindow());
-                }
+        clockTile.onMouseClickedProperty().setValue(event -> {
+            if (clockTile.getTooltip().isShowing()) clockTile.getTooltip().hide();
+            else {
+                clockTile.setTooltipText(clockTile.getInfoRegionTooltipText());
+                clockTile.getTooltip().setFont(Font.font(14));
+                clockTile.getTooltip().show(clockTile.getParent().getScene().getWindow());
             }
         });
 
@@ -195,7 +187,7 @@ public class MainFX extends Application{
                 .tooltipTimeout(1000)
                 .build();
 
-        EventHandler<MouseEvent> radarStageHandler = new ImageStageHandler<MouseEvent>("https://www.dwd.de/DWD/wetter/radar/radfilm_brd_akt.gif",
+        EventHandler<MouseEvent> radarStageHandler = new ImageStageHandler<>("https://www.dwd.de/DWD/wetter/radar/radfilm_brd_akt.gif",
                 stages, 0.5);
 
         radarTile.onMouseClickedProperty().setValue(radarStageHandler);
@@ -269,8 +261,8 @@ public class MainFX extends Application{
         stage.setScene(scene);
         stage.setFullScreen(true);
         stage.setTitle("PiMonitor");
-        width = stage.getWidth();
-        double height = stage.getHeight();
+        stage.getWidth();
+        stage.getHeight();
 
         stage.show();
 
