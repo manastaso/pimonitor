@@ -20,6 +20,10 @@ import javafx.scene.paint.Stop;
 import org.joda.time.DateTime;
 import org.joda.time.Hours;
 
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -45,6 +49,8 @@ public class UIActor extends AbstractActor {
     private final Tile areaChartTilePollen;
 
     private final Gauge windDirectionGauge;
+    private final MemoryMXBean memoryBean;
+    private final List<GarbageCollectorMXBean> gcBeans;
 
     public UIActor(Tile temperatureTile, Tile areaTileTemperature, Tile windDirectionTile, Gauge windDirectionGauge,
                    Tile windSpeedTile,
@@ -69,6 +75,8 @@ public class UIActor extends AbstractActor {
         this.areaChartTileLQI = areaChartTileLQI;
         this.areaChartTilePollen = areaChartTilePollen;
         this.clockTile = clockTile;
+        memoryBean = ManagementFactory.getMemoryMXBean();
+        gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
     }
 
     @Override
@@ -157,7 +165,7 @@ public class UIActor extends AbstractActor {
                                     List<JsonElement> new_windgusts_10m,
                                     List<JsonElement> new_windspeed_10m) {
         Platform.runLater(() -> {
-            clockTile.setTitle(String.valueOf(Runtime.getRuntime().freeMemory() / (1024 * 1024)));
+            clockTile.setTitle(getCGStatistics());
             temperatureTile.setDescription(temperature2mString);
             temperatureTile.setText(time);
             apparentTemperatureTile.setDescription(temperatureString);
@@ -179,6 +187,21 @@ public class UIActor extends AbstractActor {
         plotChartHourly(hourly_times, precipitation_probability, areaChartTileprecipitation, "Precipitation Probability", time);
         plotChartHourly(hourly_times, new_windgusts_10m, areaChartTileWindGusts, "Wind Gusts", time);
         plotChartHourly(hourly_times, new_windspeed_10m, areaChartTileWindSpeed, "Wind Speed", time);
+    }
+
+    private String getCGStatistics() {
+        MemoryUsage heap = memoryBean.getHeapMemoryUsage();
+        long used = heap.getUsed();
+        long max = heap.getMax();
+
+        double usedMB = used / (1024.0 * 1024.0);
+        double maxMB = max / (1024.0 * 1024.0);
+        double usagePercent = (usedMB / maxMB) * 100.0;
+
+        return String.format(
+                "%.1f / %.1f MB (%.1f%%)",
+                usedMB, maxMB, usagePercent
+        );
     }
 
     private void processLQI(LQI s) {
