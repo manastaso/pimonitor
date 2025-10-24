@@ -2,8 +2,6 @@ package org.pimonitor;
 
 import javafx.event.Event;
 import javafx.event.EventHandler;
-import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -38,12 +36,10 @@ public class ImageStageHandler<T extends Event> implements EventHandler<T> {
 
         stage.setScene(scene);
         stages.add(stage);
-        imageView.onMouseClickedProperty().setValue(event1 -> {
-            stages.forEach(listedStage -> {
-                Parent root = listedStage.getScene().getRoot();
-                listedStage.close();
-            });
-        });
+        imageView.onMouseClickedProperty().setValue(event1 -> stages.forEach(listedStage -> {
+            listedStage.getScene().getRoot();
+            listedStage.close();
+        }));
         stage.showAndWait();
     }
 }
